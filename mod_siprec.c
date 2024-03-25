@@ -169,7 +169,7 @@ SWITCH_MODULE_LOAD_FUNCTION(mod_siprec_load)
 
 SWITCH_MODULE_SHUTDOWN_FUNCTION(mod_siprec_shutdown)
 {
-	switch_xml_config_cleanup(instructions);
+	switch_xml_config_cleanup(general_instructions);
 
 	switch_mutex_lock(globals.recordings_mutex);
 	switch_core_hash_destroy(&globals.recordings_hash);
