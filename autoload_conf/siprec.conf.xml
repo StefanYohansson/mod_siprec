@@ -1,0 +1,17 @@
+<configuration name="siprec.conf" description="SIPRec module">
+  <settings>
+    <param name="src-enabled" value="true"/>
+    <param name="srs-enabled" value="true"/>
+  </settings>
+  <recording-servers>
+    <recording-server name="local example">
+      <settings>
+        <param name="host" value="127.0.0.1"/>
+        <param name="port" valeu="5060"/>
+        <param name="register" value="true"/>
+        <param name="username" value="1000"/>
+        <param name="password" value="1234"/>
+      </settings>
+    </recording-server>
+  </recording-servers>
+</configuration>

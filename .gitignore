@@ -1,0 +1,10 @@
+.deps
+.libs
+Makefile.in
+Makefile
+*.la
+*.lo
+
+.idea
+
+deps/*-build
