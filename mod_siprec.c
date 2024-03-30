@@ -32,6 +32,8 @@
 #include "mod_siprec.h"
 #include "recording_session.h"
 
+globals_t globals;
+
 SWITCH_MODULE_SHUTDOWN_FUNCTION(mod_siprec_shutdown);
 SWITCH_MODULE_LOAD_FUNCTION(mod_siprec_load);
 
@@ -128,7 +130,6 @@ SWITCH_STANDARD_APP(siprec_app_function)
 	int argc;
 	char *mydata = NULL;
 	const char *recording_server_name = NULL;
-	const char *recording_path = NULL;
 
 	if (!(mydata = switch_core_session_strdup(session, data))) {
 		return;
@@ -137,11 +138,10 @@ SWITCH_STANDARD_APP(siprec_app_function)
 	if ((argc = switch_separate_string(mydata, ' ', argv, (sizeof(argv) / sizeof(argv[0]))))) {
 		if (argc == 2) {
 			recording_server_name = switch_core_session_strdup(session, argv[0]);
-			recording_path = switch_core_session_strdup(session, argv[1]);
 		}
 	}
 
-	start_recording_session(session, recording_server_name, recording_path);
+	start_recording_session(session, recording_server_name);
 }
 
 SWITCH_MODULE_LOAD_FUNCTION(mod_siprec_load)
@@ -161,7 +161,7 @@ SWITCH_MODULE_LOAD_FUNCTION(mod_siprec_load)
 		goto done;
 	}
 
-	SWITCH_ADD_APP(app_interface, "siprec", "Start RS for provided RCS", "", siprec_app_function, "<recording_server> <path>", SAF_NONE);
+	SWITCH_ADD_APP(app_interface, "siprec", "Start RS for provided RCS", "", siprec_app_function, "<recording_server>", SAF_NONE);
 
 	done:
 	return status;
@@ -169,15 +169,39 @@ SWITCH_MODULE_LOAD_FUNCTION(mod_siprec_load)
 
 SWITCH_MODULE_SHUTDOWN_FUNCTION(mod_siprec_shutdown)
 {
+	switch_hash_index_t *hi;
+	void *val;
+	const void *vvar;
+	recording_t *recording = NULL;
+	recording_server_t *recording_server = NULL;
+
 	switch_xml_config_cleanup(general_instructions);
 
 	switch_mutex_lock(globals.recordings_mutex);
+	for (hi = switch_core_hash_first(globals.recordings_hash); hi; hi = switch_core_hash_next(&hi)) {
+		switch_core_hash_this(hi, &vvar, NULL, &val);
+		recording = (recording_t *) val;
+
+		switch_mutex_destroy(recording->mutex);
+		switch_core_destroy_memory_pool(&recording->pool);
+	}
+	
 	switch_core_hash_destroy(&globals.recordings_hash);
 	switch_mutex_unlock(globals.recordings_mutex);
 
 	switch_mutex_lock(globals.recording_servers_mutex);
+	for (hi = switch_core_hash_first(globals.recording_servers_hash); hi; hi = switch_core_hash_next(&hi)) {
+		switch_core_hash_this(hi, &vvar, NULL, &val);
+		recording_server = (recording_server_t *) val;
+
+		switch_core_destroy_memory_pool(&recording_server->pool);
+	}
+
 	switch_core_hash_destroy(&globals.recording_servers_hash);
 	switch_mutex_unlock(globals.recording_servers_mutex);
+
+	switch_mutex_destroy(globals.recordings_mutex);
+	switch_mutex_destroy(globals.recording_servers_mutex);
 
 	return SWITCH_STATUS_SUCCESS;
 }

@@ -36,6 +36,6 @@
 #include <switch_curl.h>
 #include <switch_types.h>
 
-switch_status_t start_recording_session(switch_core_session_t *session, const char *recording_server_name, const char *recording_path);
+switch_status_t start_recording_session(switch_core_session_t *session, const char *recording_server_name);
 
 #endif

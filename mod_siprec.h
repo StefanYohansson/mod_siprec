@@ -55,6 +55,7 @@ struct recording {
     switch_core_session_t *session;
     switch_media_bug_t *new_bug;
     recording_server_t *server;
+    switch_memory_pool_t *pool;
     int running;
 };
 typedef struct recording recording_t;

@@ -33,10 +33,12 @@
 #include "recording_session.h"
 
 
-switch_status_t start_recording_session(switch_core_session_t *session, const char *recording_server_name, const char *recording_path)
+switch_status_t start_recording_session(switch_core_session_t *session, const char *recording_server_name)
 {
     recording_server_t *server = NULL;
     recording_t *recording = NULL;
+    const char *uuid = switch_core_session_get_uuid(session);
+    char *recording_key = NULL;
 
     switch_mutex_lock(globals.recording_servers_mutex);
     server = switch_core_hash_find(globals.recording_servers_hash, recording_server_name);
@@ -47,12 +49,14 @@ switch_status_t start_recording_session(switch_core_session_t *session, const ch
         return SWITCH_STATUS_FALSE;
     }
 
+    recording_key = switch_mprintf("%s-%s", recording_server_name, uuid);
+
     switch_mutex_lock(globals.recordings_mutex);
-    recording = switch_core_hash_find(globals.recording_servers_hash, recording_path);
+    recording = switch_core_hash_find(globals.recording_servers_hash, recording_key);
     switch_mutex_unlock(globals.recordings_mutex);
 
     if (recording) {
-        switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_ERROR, "Recording %s already exists\n", recording_path);
+        switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_ERROR, "Recording %s already exists\n", recording_key);
         return SWITCH_STATUS_FALSE;
     }
 
