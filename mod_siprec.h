@@ -38,7 +38,7 @@
 
 struct recording_server {
     char *name;
-	char *host;
+    char *host;
     int port;
     int should_register;
     char *username;
@@ -48,9 +48,9 @@ struct recording_server {
 typedef struct recording_server recording_server_t;
 
 struct recording {
-    char *path;
+    char *key;
     char *uuid;
-	int start_epoch;
+    int start_epoch;
     switch_mutex_t *mutex;
     switch_core_session_t *session;
     switch_media_bug_t *new_bug;
@@ -61,18 +61,30 @@ struct recording {
 typedef struct recording recording_t;
 
 typedef struct {
-	char *odbc_dsn;
-	char *dbname;
+    char *odbc_dsn;
+    char *dbname;
     int src_enabled;
     int srs_enabled;
-	switch_hash_t *recording_servers_hash;
-	switch_mutex_t *recording_servers_mutex;
+    switch_hash_t *recording_servers_hash;
+    switch_mutex_t *recording_servers_mutex;
     switch_hash_t *recordings_hash;
-	switch_mutex_t *recordings_mutex;
-	switch_mutex_t *db_mutex;
-	switch_bool_t global_database_lock;
+    switch_mutex_t *recordings_mutex;
+    switch_mutex_t *db_mutex;
+    switch_bool_t global_database_lock;
 } globals_t;
 
 extern globals_t globals;
 
 #endif
+
+
+/* For Emacs:
+ * Local Variables:
+ * mode:c
+ * indent-tabs-mode:t
+ * tab-width:4
+ * c-basic-offset:4
+ * End:
+ * For VIM:
+ * vim:set softtabstop=4 shiftwidth=4 tabstop=4 noet
+ */

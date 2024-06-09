@@ -37,5 +37,18 @@
 #include <switch_types.h>
 
 switch_status_t start_recording_session(switch_core_session_t *session, const char *recording_server_name);
+switch_status_t stop_recording_session(switch_core_session_t session);
 
 #endif
+
+
+/* For Emacs:
+ * Local Variables:
+ * mode:c
+ * indent-tabs-mode:t
+ * tab-width:4
+ * c-basic-offset:4
+ * End:
+ * For VIM:
+ * vim:set softtabstop=4 shiftwidth=4 tabstop=4 noet
+ */
