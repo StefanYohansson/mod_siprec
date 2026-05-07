@@ -1,5 +1,8 @@
 # mod_siprec
 
+## [DEPRECATED] Check https://github.com/voicetel/mod_siprec for newer versions
+
+
 A FreeSWITCH module that implements [RFC 7866][rfc7866] SIPREC
 (Session Recording Protocol) as a Session Recording Client (SRC),
 with [RFC 7865][rfc7865]-compliant metadata.
