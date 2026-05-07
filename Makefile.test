@@ -1,0 +1,82 @@
+# Standalone test build for the SDP / metadata builders.
+# These compilation units have no FreeSWITCH dependency and are
+# unit-tested independently of the module build (which requires
+# the full FS source tree + ./configure-generated headers).
+#
+# Usage:
+#   make -f Makefile.test test          strict-warnings build + run
+#   make -f Makefile.test lint          cppcheck --enable=all
+#   make -f Makefile.test asan          ASan + UBSan + LSan
+#   make -f Makefile.test analyzer      gcc -fanalyzer
+#   make -f Makefile.test tidy          clang-tidy
+#   make -f Makefile.test all-checks    every layer above
+#   make -f Makefile.test clean
+
+CC      ?= gcc
+CFLAGS  ?= -Wall -Wextra -Wpedantic -Werror -O2 -g -std=c11
+TEST    = siprec_test
+SOURCES = siprec_test.c siprec_sdp.c siprec_metadata.c
+
+# Sanitizer flags. -O1 keeps reports readable;
+# -fno-omit-frame-pointer gets accurate stacks. Do NOT combine
+# with -fsanitize=thread in the same build — ASan and TSan are
+# mutually exclusive.
+SAN_CFLAGS  = -O1 -g -std=c11 -Wall -Wextra -Wpedantic \
+              -fsanitize=address,undefined -fno-omit-frame-pointer
+SAN_LDFLAGS = -fsanitize=address,undefined
+
+# Halt-on-error means a sanitizer report fails the build
+# rather than passing through with diagnostics.
+SAN_RUN_ENV = UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 \
+              ASAN_OPTIONS=detect_leaks=1:halt_on_error=1
+
+.PHONY: test lint asan analyzer tidy all-checks clean
+
+test: $(TEST)
+	./$(TEST)
+
+$(TEST): $(SOURCES) siprec_sdp.h siprec_metadata.h
+	$(CC) $(CFLAGS) $(SOURCES) -o $@
+
+lint:
+	cppcheck --enable=all --inline-suppr --check-level=exhaustive \
+	    --suppress=missingIncludeSystem --suppress=missingInclude \
+	    --suppress=unusedFunction --suppress=staticFunction \
+	    --suppress=checkersReport --suppress=unmatchedSuppression \
+	    --suppress=normalCheckLevelMaxBranches \
+	    --error-exitcode=1 --std=c11 --force -I . \
+	    siprec_sdp.c siprec_metadata.c siprec_test.c \
+	    siprec_invite.c siprec_media.c \
+	    mod_siprec.c recording_session.c
+
+# AddressSanitizer + UBSan + LeakSanitizer (LSan runs at exit
+# under ASan). Catches heap/stack/global out-of-bounds,
+# use-after-free, double-free, leaks, integer overflow, etc.
+asan:
+	rm -f $(TEST)
+	$(CC) $(SAN_CFLAGS) $(SOURCES) $(SAN_LDFLAGS) -o $(TEST)
+	$(SAN_RUN_ENV) ./$(TEST)
+
+# gcc -fanalyzer is a flow-sensitive checker that finds
+# null-deref, leak, and use-after-free across a wider call
+# graph than cppcheck's pattern matching.
+analyzer:
+	$(CC) -fanalyzer -Wall -Wextra -std=c11 -c siprec_sdp.c -o /dev/null
+	$(CC) -fanalyzer -Wall -Wextra -std=c11 -c siprec_metadata.c -o /dev/null
+	$(CC) -fanalyzer -Wall -Wextra -std=c11 -c siprec_test.c -o /dev/null
+
+# clang-tidy with default checks. The libc-call sites that
+# trip clang-analyzer-security.insecureAPI carry per-call
+# NOLINT-with-rationale comments in the source — no .clang-tidy
+# config and no global suppressions.
+#
+# Install with `apt install clang-tidy`. scan-build is a
+# separate package (clang-tools) and not currently wired in.
+tidy:
+	clang-tidy siprec_sdp.c siprec_metadata.c siprec_test.c \
+	    -- -Wall -Wextra -std=c11 -I.
+
+all-checks: test lint analyzer asan tidy
+
+clean:
+	rm -f $(TEST)

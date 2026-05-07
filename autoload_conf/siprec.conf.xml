@@ -1,17 +1,77 @@
-<configuration name="siprec.conf" description="SIPRec module">
+<configuration name="siprec.conf"
+               description="SIPREC (RFC 7866) module config">
+
+  <!-- Top-level module settings.
+       src-enabled: Session Recording Client mode — sends
+                    SIPREC INVITEs out to a configured SRS for
+                    each recording. THIS MODULE only implements
+                    SRC; SRS-mode is reserved for a future
+                    rewrite (mod_siprec_srs).
+       srs-enabled: Reserved. v1 ignores it. -->
   <settings>
     <param name="src-enabled" value="true"/>
-    <param name="srs-enabled" value="true"/>
+    <param name="srs-enabled" value="false"/>
   </settings>
+
+  <!-- One <recording-server> per Session Recording Server
+       endpoint. The dialplan dispatches as
+       `siprec <recording-server-name>` (e.g. `siprec default`)
+       and mod_siprec opens the SIPREC INVITE to the matching
+       entry's host:port.
+
+       FAILOVER: declare multiple <recording-server> entries
+       with the same name. mod_siprec walks them in config
+       order, trying each (host, port, transport) candidate
+       until one accepts the INVITE. The first declaration
+       is the primary; subsequent declarations are backups.
+
+       Voicetel default deployment: cb-srs (Go SRS) on
+       127.0.0.1:5070. -->
   <recording-servers>
-    <recording-server name="local example">
+    <recording-server name="default">
       <settings>
+        <!-- SRS host. Loopback for the default deployment;
+             for cross-host recording set to the SRS's
+             public address. -->
         <param name="host" value="127.0.0.1"/>
-        <param name="port" valeu="5060"/>
-        <param name="register" value="true"/>
-        <param name="username" value="1000"/>
-        <param name="password" value="1234"/>
+
+        <!-- SRS SIP port. Distinct from the carrier-side
+             5060/5080 to keep recording traffic on its own
+             socket. cb-srs binds 5070 by default. -->
+        <param name="port" value="5070"/>
+
+        <!-- Transport: "udp" (default) | "tcp" | "tls".
+             "tls" is SIPS per RFC 7866 §11.3 and requires
+             the host's sofia profile to have sip-tls-port
+             configured. Without TLS, recording-leg SIP and
+             metadata travel in cleartext — only safe on
+             trusted-network links (loopback / VPN). -->
+        <param name="transport" value="udp"/>
+
+        <!-- v1 does not register with the SRS (SRS is a
+             stateless receiver in our deployment). Setting
+             this true is reserved for future SRS deployments
+             that require pre-registration with credentials. -->
+        <param name="register" value="false"/>
+
+        <!-- Optional auth credentials. Used only when the SRS
+             requires SIP digest auth on the INVITE. Empty
+             values disable digest auth. -->
+        <param name="username" value=""/>
+        <param name="password" value=""/>
       </settings>
     </recording-server>
+
+    <!-- Failover example: a second declaration with the same
+         name="default" is appended to the chain. Uncomment
+         and adjust to a backup SRS host.
+    <recording-server name="default">
+      <settings>
+        <param name="host" value="srs2.example.com"/>
+        <param name="port" value="5070"/>
+        <param name="transport" value="tls"/>
+      </settings>
+    </recording-server>
+    -->
   </recording-servers>
 </configuration>
